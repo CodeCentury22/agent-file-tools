@@ -1,17 +1,23 @@
 import os
+from pathlib import Path
 from typing import Dict, Any
 from agent_core_utils import track_latency, audit_logger
+
+def normalize_path(path_str: str) -> str:
+    """Converts input path to an absolute, cross-platform POSIX path string."""
+    return Path(path_str).resolve().as_posix()
+
 
 @track_latency
 @audit_logger(log_file="file_tools_telemetry.jsonl")
 def read_file(file_path: str) -> Dict[str, Any]:
     """Reads and returns text content from a specified file."""
     try:
-        normalized_path = os.path.normpath(file_path)
-        with open(normalized_path, "r", encoding="utf-8") as f:
+        posix_path = normalize_path(file_path)
+        with open(posix_path, "r", encoding="utf-8") as f:
             content = f.read()
         return {
-            "file_path": normalized_path,
+            "file_path": posix_path,
             "content": content,
             "status": "SUCCESS"
         }
@@ -22,29 +28,30 @@ def read_file(file_path: str) -> Dict[str, Any]:
             "status": "ERROR"
         }
 
+
 @track_latency
-@audit_logger(log_file="file_tools_telemtry.jsonl")
+@audit_logger(log_file="file_tools_telemetry.jsonl")  # Fixed typo: telemtry -> telemetry
 def write_file(file_path: str, code_body: str, overwrite: bool = True) -> Dict[str, Any]:
     """Writes content to a file, creating parent directories if needed."""
     try:
-        normalized_path = os.path.normpath(file_path)
+        path_obj = Path(file_path).resolve()
+        posix_path = path_obj.as_posix()
 
-        if os.path.exists(normalized_path) and not overwrite:
+        if path_obj.exists() and not overwrite:
             return {
-                "file_path": normalized_path,
+                "file_path": posix_path,
                 "error": "File exists and overwrite is set to False.",
                 "status": "DENIED"
             }
 
-        dir_name = os.path.dirname(normalized_path)
-        if dir_name:
-            os.makedirs(dir_name, exist_ok=True)
+        # Create parent directories safely across OSs
+        path_obj.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(normalized_path, "w", encoding="utf-8") as f:
+        with open(path_obj, "w", encoding="utf-8") as f:
             f.write(code_body)
 
         return {
-            "file_path": normalized_path,
+            "file_path": posix_path,
             "bytes_written": len(code_body.encode("utf-8")),
             "status": "SUCCESS"
         }
@@ -55,21 +62,25 @@ def write_file(file_path: str, code_body: str, overwrite: bool = True) -> Dict[s
             "status": "ERROR"
         }
 
+
 @track_latency
 @audit_logger(log_file="file_tools_telemetry.jsonl")
 def delete_file(file_path: str) -> Dict[str, Any]:
     """Deletes a file if it exists."""
     try:
-        normalized_path = os.path.normpath(file_path)
-        if not os.path.exists(normalized_path):
+        path_obj = Path(file_path).resolve()
+        posix_path = path_obj.as_posix()
+
+        if not path_obj.exists():
             return {
-                "file_path": normalized_path,
+                "file_path": posix_path,
                 "error": "File does not exist.",
                 "status": "ERROR"
             }
-        os.remove(normalized_path)
+
+        path_obj.unlink()
         return {
-            "file_path": normalized_path,
+            "file_path": posix_path,
             "status": "SUCCESS"
         }
     except Exception as e:
@@ -79,15 +90,18 @@ def delete_file(file_path: str) -> Dict[str, Any]:
             "status": "ERROR"
         }
 
-track_latency
+
+@track_latency  # Fixed missing @ decorator symbol
 @audit_logger(log_file="file_tools_telemetry.jsonl")
 def list_files(directory: str = ".") -> Dict[str, Any]:
     """Lists all files in a target directory."""
     try:
-        normalized_dir = os.path.normpath(directory)
-        files = os.listdir(normalized_dir)
+        dir_obj = Path(directory).resolve()
+        posix_dir = dir_obj.as_posix()
+
+        files = [p.name for p in dir_obj.iterdir()]
         return {
-            "directory": normalized_dir,
+            "directory": posix_dir,
             "files": files,
             "status": "SUCCESS"
         }
