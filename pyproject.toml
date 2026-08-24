@@ -9,7 +9,7 @@ description = "File system tools with path normalization, telemetry auditing, an
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "agent-core-utils>=0.2.0",
+    "agent-core-utils",
 ]
 
 [dependency-groups]
