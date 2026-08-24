@@ -1,7 +1,17 @@
 import pytest
 from pathlib import Path
 from agent_file_tools.tools import read_file, write_file, delete_file, list_files
+from agent_file_tools import FILE_TOOLS_SCHEMA, TOOL_DISPATCHER
 
+def test_file_tools_schema_structure():
+    tool_names = {t["function"]["name"] for t in FILE_TOOLS_SCHEMA}
+    assert tool_names == {"read_file", "write_file", "delete_file", "list_files"}
+
+def test_tool_dispatcher_mapping():
+    assert TOOL_DISPATCHER["read_file"] == read_file
+    assert TOOL_DISPATCHER["write_file"] == write_file
+    assert TOOL_DISPATCHER["delete_file"] == delete_file
+    assert TOOL_DISPATCHER["list_files"] == list_files
 
 def test_write_and_read_file(tmp_path):
     test_file = str(tmp_path / "sample.py")

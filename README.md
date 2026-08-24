@@ -14,7 +14,7 @@ Link locally via `uv` or add to `pyproject.toml`:
 
 ```toml
 [dependencies]
-agent-file-tools = { git = "https://github.com/CodeCentury22/agent-file-tools.git", tag = "v0.4.2" }
+agent-file-tools = { git = "https://github.com/CodeCentury22/agent-file-tools.git", tag = "v0.5.0" }
 ```
 
 ## Quickstart

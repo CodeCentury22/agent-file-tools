@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 from agent_core_utils import track_latency, audit_logger
 
 def normalize_path(path_str: str) -> str:
@@ -30,7 +30,7 @@ def read_file(file_path: str) -> Dict[str, Any]:
 
 
 @track_latency
-@audit_logger(log_file="file_tools_telemetry.jsonl")  # Fixed typo: telemtry -> telemetry
+@audit_logger(log_file="file_tools_telemetry.jsonl")
 def write_file(file_path: str, code_body: str, overwrite: bool = True) -> Dict[str, Any]:
     """Writes content to a file, creating parent directories if needed."""
     try:
@@ -44,7 +44,6 @@ def write_file(file_path: str, code_body: str, overwrite: bool = True) -> Dict[s
                 "status": "DENIED"
             }
 
-        # Create parent directories safely across OSs
         path_obj.parent.mkdir(parents=True, exist_ok=True)
 
         with open(path_obj, "w", encoding="utf-8") as f:
@@ -91,7 +90,7 @@ def delete_file(file_path: str) -> Dict[str, Any]:
         }
 
 
-@track_latency  # Fixed missing @ decorator symbol
+@track_latency
 @audit_logger(log_file="file_tools_telemetry.jsonl")
 def list_files(directory: str = ".") -> Dict[str, Any]:
     """Lists all files in a target directory."""
@@ -111,3 +110,76 @@ def list_files(directory: str = ".") -> Dict[str, Any]:
             "error": str(e),
             "status": "ERROR"
         }
+
+
+# =====================================================================
+# Function Calling Schemas & Dispatcher
+# =====================================================================
+
+FILE_TOOLS_SCHEMA: List[Dict[str, Any]] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Reads and returns text content from a specified file.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Target file path."}
+                },
+                "required": ["file_path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "Writes content to a file, creating parent directories if needed.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Target file path."},
+                    "code_body": {"type": "string", "description": "Text or code body to write."},
+                    "overwrite": {"type": "boolean", "description": "Whether to overwrite existing files.", "default": True}
+                },
+                "required": ["file_path", "code_body"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_file",
+            "description": "Deletes a file at the target path if it exists.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Target file path to remove."}
+                },
+                "required": ["file_path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_files",
+            "description": "Lists all files in a target directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "directory": {"type": "string", "description": "Target directory path.", "default": "."}
+                },
+                "required": []
+            }
+        }
+    }
+]
+
+TOOL_DISPATCHER = {
+    "read_file": read_file,
+    "write_file": write_file,
+    "delete_file": delete_file,
+    "list_files": list_files,
+}
